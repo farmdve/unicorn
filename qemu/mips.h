@@ -2414,7 +2414,6 @@
 #define qemu_clock_get_us qemu_clock_get_us_mips
 #define qemu_clock_ptr qemu_clock_ptr_mips
 #define qemu_clocks qemu_clocks_mips
-#define qemu_cond_destroy qemu_cond_destroy_mips
 #define qemu_cpu_is_self qemu_cpu_is_self_mips
 #define qemu_cpu_kick_thread qemu_cpu_kick_thread_mips
 #define qemu_daemon qemu_daemon_mips
