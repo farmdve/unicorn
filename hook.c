@@ -60,7 +60,12 @@ size_t hook_add(struct uc_struct *uc, int type, uint64_t begin, uint64_t end, vo
             case UC_HOOK_CODE:
                      uc->hook_insn = true;
                      if (begin > end)
-                         uc->hook_insn_idx = i;
+                         uc->hook_insn_idx[0] = i;
+                     break;
+            case UC_HOOK_CODE + UC_HOOK_POST:
+                     uc->hook_insn = true;
+                     if (begin > end)
+                         uc->hook_insn_idx[1] = i;
                      break;
             case UC_HOOK_MEM_READ:
                      uc->hook_mem_read = true;
@@ -96,8 +101,12 @@ uc_err hook_del(struct uc_struct *uc, uc_hook hh)
         uc->hook_block_idx = 0;
     }
 
-    if (hh == uc->hook_insn_idx) {
-        uc->hook_insn_idx = 0;
+    if (hh == uc->hook_insn_idx[0]) {
+        uc->hook_insn_idx[0] = 0;
+    }
+
+    if (hh == uc->hook_insn_idx[1]) {
+        uc->hook_insn_idx[1] = 0;
     }
 
     if (hh == uc->hook_read_idx) {
@@ -171,8 +180,13 @@ static struct hook_struct *_hook_find(struct uc_struct *uc, int type, uint64_t a
             break;
         case UC_HOOK_CODE:
             // already hooked all the code?
-            if (uc->hook_insn_idx)
-                return &uc->hook_callbacks[uc->hook_insn_idx];
+            if (uc->hook_insn_idx[0])
+                return &uc->hook_callbacks[uc->hook_insn_idx[0]];
+            break;
+        case UC_HOOK_CODE + UC_HOOK_POST:
+            // already hooked all the code?
+            if (uc->hook_insn_idx[1])
+                return &uc->hook_callbacks[uc->hook_insn_idx[1]];
             break;
         case UC_HOOK_MEM_READ:
             // already hooked all memory read?

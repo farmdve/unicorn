@@ -846,6 +846,8 @@ void tb_flush(CPUArchState *env1)
     /* XXX: flush processor icache at this point if cache flush is
        expensive */
     tcg_ctx->tb_ctx.tb_flush_count++;
+    tcg_ctx->pchook = 0;
+    tcg_ctx->prev_size = 0;
 }
 
 #ifdef DEBUG_TB_CHECK

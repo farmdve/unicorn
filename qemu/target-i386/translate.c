@@ -4745,10 +4745,10 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
     TCGv cpu_tmp4 = *(TCGv *)tcg_ctx->cpu_tmp4;
     TCGv **cpu_T = (TCGv **)tcg_ctx->cpu_T;
     TCGv **cpu_regs = (TCGv **)tcg_ctx->cpu_regs;
-    struct hook_struct *trace = NULL;
+    struct hook_struct *trace = NULL, *trace2 = NULL;
     TCGArg *save_opparam_ptr = tcg_ctx->gen_opparam_ptr;
     bool cc_op_dirty = s->cc_op_dirty;
-    bool changed_cc_op = false;
+    bool changed_cc_op = false, changed_cc_op2 = false;
 
 
     s->pc = pc_start;
@@ -4756,6 +4756,22 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
     // end address tells us to stop emulation
     if (s->pc == s->uc->addr_end) {
         // imitate the HLT instruction
+        if (env->uc->hook_insn) {
+            if (tcg_ctx->pchook != 0) {
+               trace2 = hook_find(env->uc, UC_HOOK_CODE + UC_HOOK_POST, pc_start);
+               if (trace2) {
+                   if (s->last_cc_op != s->cc_op) {
+                       sync_eflags(s, tcg_ctx);
+                       s->last_cc_op = s->cc_op;
+                       changed_cc_op2 = true;
+                   }
+                   // generate code to call callback
+                   gen_uc_tracecode(tcg_ctx, tcg_ctx->prev_size, trace2->callback, env->uc, tcg_ctx->pchook, trace2->user_data);
+                   // the callback might want to stop emulation immediately
+                   check_exit_request(tcg_ctx);
+                }
+            }
+        }
         gen_update_cc_op(s);
         gen_jmp_im(s, pc_start - s->cs_base);
         gen_helper_hlt(tcg_ctx, cpu_env, tcg_const_i32(tcg_ctx, s->pc - pc_start));
@@ -4769,9 +4785,23 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
 
     // Unicorn: trace this instruction on request
     if (env->uc->hook_insn) {
+        if (tcg_ctx->pchook != 0) {
+           trace2 = hook_find(env->uc, UC_HOOK_CODE + UC_HOOK_POST, pc_start);
+           if (trace2) {
+               if (s->last_cc_op != s->cc_op) {
+                   sync_eflags(s, tcg_ctx);
+                   s->last_cc_op = s->cc_op;
+                   changed_cc_op2 = true;
+               }
+               // generate code to call callback
+               gen_uc_tracecode(tcg_ctx, tcg_ctx->prev_size, trace2->callback, env->uc, tcg_ctx->pchook, trace2->user_data);
+               // the callback might want to stop emulation immediately
+               check_exit_request(tcg_ctx);
+            }
+        }
         trace = hook_find(env->uc, UC_HOOK_CODE, pc_start);
         if (trace) {
-            if (s->last_cc_op != s->cc_op) {
+            if ((s->last_cc_op != s->cc_op) && !trace2) {
                 sync_eflags(s, tcg_ctx);
                 s->last_cc_op = s->cc_op;
                 changed_cc_op = true;
@@ -8173,25 +8203,72 @@ static target_ulong disas_insn(CPUX86State *env, DisasContext *s,
         gen_helper_unlock(tcg_ctx, cpu_env);
 
     // Unicorn: patch the callback for the instruction size
-    if (trace) {
+    if (env->uc->hook_insn) {
+        tcg_ctx->prev_size = s->pc - pc_start;
         // int i;
         // for(i = 0; i < 20; i++)
         //     printf("=== [%u] = %x\n", i, *(save_opparam_ptr + i));
         // printf("\n");
-        if (changed_cc_op) {
-            if (cc_op_dirty)
+        if(trace && trace2)
+        {
+            assert(!(changed_cc_op && changed_cc_op2));
+            if(changed_cc_op2)
+            {
+                if(cc_op_dirty)
+                {
 #if TCG_TARGET_REG_BITS == 32
-                *(save_opparam_ptr + 16) = s->pc - pc_start;
-            else
-                *(save_opparam_ptr + 14) = s->pc - pc_start;
+                    *(save_opparam_ptr + 47) = s->pc - pc_start;
+                }
+                else
+                {
+                    *(save_opparam_ptr + 45) = s->pc - pc_start;
+                }
 #else
-                *(save_opparam_ptr + 12) = s->pc - pc_start;
-            else
-                *(save_opparam_ptr + 10) = s->pc - pc_start;
+                    *(save_opparam_ptr + 40) = s->pc - pc_start;
+                }
+                else
+                {
+                    *(save_opparam_ptr + 38) = s->pc - pc_start;
+                }
 #endif
-        } else {
-            *(save_opparam_ptr + 1) = s->pc - pc_start;
+            }
+            else
+            {
+#if TCG_TARGET_REG_BITS == 32
+                *(save_opparam_ptr + 32) = s->pc - pc_start;
+#else
+                *(save_opparam_ptr + 29) = s->pc - pc_start;
+#endif
+            }
         }
+        else if(trace && !trace2)
+        {
+            if(changed_cc_op)
+            {
+                if(cc_op_dirty)
+                {
+#if TCG_TARGET_REG_BITS == 32
+                    *(save_opparam_ptr + 16) = s->pc - pc_start;
+                }
+                else
+                {
+                    *(save_opparam_ptr + 14) = s->pc - pc_start;
+#else
+                    *(save_opparam_ptr + 12) = s->pc - pc_start;
+                }
+                else
+                {
+                    *(save_opparam_ptr + 10) = s->pc - pc_start;
+#endif
+                }
+            }
+            else
+            {
+                *(save_opparam_ptr + 1) = s->pc - pc_start;
+            }
+        }
+
+        tcg_ctx->pchook = pc_start;
     }
 
     return s->pc;

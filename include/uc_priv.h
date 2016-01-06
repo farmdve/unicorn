@@ -156,7 +156,7 @@ struct uc_struct {
     size_t emu_count; // save counter of uc_emu_start()
 
     // indexes if hooking ALL block/code/read/write events
-    unsigned int hook_block_idx, hook_insn_idx, hook_read_idx, hook_write_idx;
+    unsigned int hook_block_idx, hook_insn_idx[2], hook_read_idx, hook_write_idx;
     // boolean variables for quick check on hooking block, code, memory accesses
     bool hook_block, hook_insn, hook_mem_read, hook_mem_write;
     uint64_t block_addr;    // save the last block address we hooked

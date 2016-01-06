@@ -1089,6 +1089,11 @@ uc_err uc_hook_add(uc_engine *uc, uc_hook *hh, int type, void *callback, void *u
             end = va_arg(valist, uint64_t);
             ret = _hook_code(uc, UC_HOOK_CODE, begin, end, callback, user_data, hh);
             break;
+        case UC_HOOK_CODE + UC_HOOK_POST:
+            begin = va_arg(valist, uint64_t);
+            end = va_arg(valist, uint64_t);
+            ret = _hook_code(uc, UC_HOOK_CODE + UC_HOOK_POST, begin, end, callback, user_data, hh);
+            break;
         case UC_HOOK_BLOCK:
             begin = va_arg(valist, uint64_t);
             end = va_arg(valist, uint64_t);
