@@ -197,6 +197,7 @@ struct uc_struct {
     uint32_t target_page_size;
     uint32_t target_page_align;
     uint64_t next_pc;   // save next PC for some special cases
+	bool eip_change;
 };
 
 #include "qemu_macro.h"
