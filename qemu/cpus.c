@@ -28,6 +28,7 @@
 #include "config-host.h"
 #include "sysemu/sysemu.h"
 #include "sysemu/cpus.h"
+#include "qemu/thread.h"
 
 #include "exec/address-spaces.h"	// debug, can be removed later
 
@@ -76,7 +77,7 @@ void pause_all_vcpus(struct uc_struct *uc)
     CPUState *cpu;
 
     CPU_FOREACH(cpu) {
-        qemu_thread_join(cpu->thread);	// qq: fix qemu_thread_join() to work for instance
+        qemu_thread_join(uc, cpu->thread);	// qq: fix qemu_thread_join() to work for instance
     }
 }
 
@@ -164,6 +165,15 @@ static void *qemu_tcg_cpu_thread_fn(void *arg)
     CPU_FOREACH(cpu) {
         cpu->thread_id = 0;
         cpu->created = false;
+        free(cpu->thread);
+        qemu_cond_destroy(cpu->halt_cond);
+        free(cpu->halt_cond);
+#ifdef _WIN32
+        if(cpu->hThread)
+            CloseHandle(cpu->hThread);
+#endif
+        cpu->thread = NULL;
+        cpu->halt_cond = NULL;
     }
 
     qemu_mutex_unlock(&uc->qemu_global_mutex);

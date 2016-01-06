@@ -2414,7 +2414,6 @@
 #define qemu_clock_get_us qemu_clock_get_us_m68k
 #define qemu_clock_ptr qemu_clock_ptr_m68k
 #define qemu_clocks qemu_clocks_m68k
-#define qemu_cond_destroy qemu_cond_destroy_m68k
 #define qemu_cpu_is_self qemu_cpu_is_self_m68k
 #define qemu_cpu_kick_thread qemu_cpu_kick_thread_m68k
 #define qemu_daemon qemu_daemon_m68k

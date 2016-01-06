@@ -2414,7 +2414,6 @@
 #define qemu_clock_get_us qemu_clock_get_us_x86_64
 #define qemu_clock_ptr qemu_clock_ptr_x86_64
 #define qemu_clocks qemu_clocks_x86_64
-#define qemu_cond_destroy qemu_cond_destroy_x86_64
 #define qemu_cpu_is_self qemu_cpu_is_self_x86_64
 #define qemu_cpu_kick_thread qemu_cpu_kick_thread_x86_64
 #define qemu_daemon qemu_daemon_x86_64
