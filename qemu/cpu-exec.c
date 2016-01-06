@@ -98,6 +98,13 @@ int cpu_exec(struct uc_struct *uc, CPUArchState *env)   // qq
         if (sigsetjmp(cpu->jmp_env, 0) == 0) {
             if (uc->stop_request || uc->invalid_error)
                 break;
+			if (uc->eip_change) {
+				tb_flush(env);
+				uc->eip_change = false;
+				uc->current_cpu->exit_request = 0;
+				uc->current_cpu->tcg_exit_req = 0;
+				cpu->exception_index = -1;
+			}
             /* if an exception is pending, we execute it here */
             if (cpu->exception_index >= 0) {
                 //printf(">>> GOT INTERRUPT. exception idx = %x\n", cpu->exception_index);	// qq
@@ -299,12 +306,12 @@ static tcg_target_ulong cpu_tb_exec(CPUState *cpu, uint8_t *tb_ptr)
         TranslationBlock *tb = (TranslationBlock *)(next_tb & ~TB_EXIT_MASK);
         if (cc->synchronize_from_tb) {
             // avoid sync twice when helper_uc_tracecode() already did this.
-            if (env->uc->emu_counter <= env->uc->emu_count && !env->uc->stop_request)
+            if ((env->uc->emu_counter <= env->uc->emu_count && !env->uc->stop_request) && !env->uc->eip_change)
                 cc->synchronize_from_tb(cpu, tb);
         } else {
             assert(cc->set_pc);
             // avoid sync twice when helper_uc_tracecode() already did this.
-            if (env->uc->emu_counter <= env->uc->emu_count)
+            if (env->uc->emu_counter <= env->uc->emu_count && !env->uc->eip_change)
                 cc->set_pc(cpu, tb->pc);
         }
     }

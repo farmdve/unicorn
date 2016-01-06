@@ -658,6 +658,11 @@ int x86_reg_write(struct uc_struct *uc, unsigned int regid, const void *value)
                 case UC_X86_REG_EIP:
                     X86_CPU(uc, mycpu)->env.eip = *(uint32_t *)value;
                     break;
+                case UC_X86_REG_EIP2:
+                    X86_CPU(uc, mycpu)->env.eip = *(uint32_t *)value;
+					uc->eip_change = true;
+					cpu_exit(uc->current_cpu);
+                    break;
                 case UC_X86_REG_IP:
                     WRITE_WORD(X86_CPU(uc, mycpu)->env.eip, *(uint16_t *)value);
                     break;
